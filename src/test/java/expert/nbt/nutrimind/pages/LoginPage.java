@@ -6,8 +6,12 @@ import expert.nbt.nutrimind.config.TestConfig;
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 public final class LoginPage extends BasePage {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(LoginPage.class);
     public LoginPage(Page page) { super(page); }
-    public Response open() { return page.navigate(TestConfig.baseUrl()); }
+    public Response open() {
+        log.info("Opening login page");
+        return page.navigate(TestConfig.baseUrl());
+    }
     public Locator email() { return page.locator("app-login-component input[formcontrolname='user']"); }
     public Locator password() { return page.locator("app-login-component input[formcontrolname='password']"); }
     public Locator submit() { return page.locator("app-login-component button[type='submit']"); }
@@ -16,6 +20,7 @@ public final class LoginPage extends BasePage {
     public Locator recoverLink() { return page.locator("app-recover a"); }
     public Locator registerLink() { return page.locator("app-link-registration a"); }
     public void selectLanguage(String language) {
+        log.info("Selecting interface language: {}", language);
         Locator switcher = page.locator("app-select-language button.btn-lang");
         assertThat(switcher).isVisible();
         if (!switcher.innerText().trim().equalsIgnoreCase(language)) {
@@ -25,6 +30,7 @@ public final class LoginPage extends BasePage {
         assertThat(switcher).hasText(java.util.regex.Pattern.compile(language, java.util.regex.Pattern.CASE_INSENSITIVE));
     }
     public void fillCredentials(String username, String secret) {
+        log.debug("Filling login form");
         email().fill(username);
         password().fill(secret);
     }
@@ -41,9 +47,11 @@ public final class LoginPage extends BasePage {
         return game;
     }
     public RecoveryPage openRecovery() {
+        log.info("Opening password recovery page");
         return new RecoveryPage(page.waitForPopup(() -> recoverLink().click()));
     }
     public RegistrationPage openRegistration() {
+        log.info("Opening registration page");
         return new RegistrationPage(page.waitForPopup(() -> registerLink().click()));
     }
 }
