@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="NutriMind UI" type="MavenRunConfiguration" factoryName="Maven">
+    <MavenSettings><option name="myRunnerParameters"><MavenRunnerParameters>
+      <option name="workingDirPath" value="$PROJECT_DIR$"/>
+      <option name="goals"><list><option value="test"/><option value="-Dheadless=false"/></list></option>
+    </MavenRunnerParameters></option></MavenSettings>
+    <method v="2"/>
+  </configuration>
+</component>

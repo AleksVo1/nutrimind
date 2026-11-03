@@ -1,0 +1,4 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="NutriMind UI" parallel="none">
+  <test name="Manual cases 1–8"><classes><class name="expert.nbt.nutrimind.tests.AuthenticationTest"/></classes></test>
+</suite>
