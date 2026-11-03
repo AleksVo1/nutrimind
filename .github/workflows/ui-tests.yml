@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   ui-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       HEADLESS: 'true'
@@ -18,8 +18,8 @@ jobs:
       TEST_USERNAME: ${{ secrets.TEST_USERNAME || 'demo' }}
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD || 'demo' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -33,7 +33,7 @@ jobs:
         run: mvn -B allure:report
       - name: Upload reports and failure evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ui-test-results
           path: |

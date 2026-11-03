@@ -135,3 +135,9 @@ GitHub Actions генерує HTML звіт навіть після падінн
 [Документація Allure TestNG](https://allurereport.org/docs/testng/).
 
 Перевірка Allure: `mvn -B clean test` сформував 8 результатів (7 passed, 1 failed — TC-07); `mvn -B allure:report` завершився BUILD SUCCESS. Перевірено наявність HTML звіту та всіх п’яти вкладень невдалого тесту.
+
+## Сумісність GitHub Actions
+
+Workflow використовує `ubuntu-24.04`, `actions/checkout@v5`, `actions/setup-java@v5` та `actions/upload-artifact@v6`. У цих версіях actions runtime — Node.js 24. Закріплення Ubuntu 24.04 запобігає автоматичному переходу `ubuntu-latest` на інший образ.
+
+Прогін GitHub Actions [41624860828](https://github.com/AleksVo1/nutrimind/actions/runs/41624860828): 7 passed, 1 failed (`recoveryNavigation`, неправильний перехід на `/ru/login`). Exit code 1 спричинений тестом; попередження про runtime actions не були причиною падіння. Allure звіт і артефакт успішно створені. Оновлення workflow прибирає зазначені попередження, але TC-07 залишиться failed до виправлення сайту.
