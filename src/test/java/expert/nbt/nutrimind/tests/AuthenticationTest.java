@@ -103,4 +103,16 @@ public final class AuthenticationTest extends BaseTest {
         assertThat(page.locator("app-link-registration")).containsText("Немає аккаунта?");
         login.openRegistration().expectLoaded();
     }
+    @Test(description = "TC-09: Відкриття реєстрації — поля, кнопка та навігаційний ланцюжок")
+    @io.qameta.allure.Story("Відкриття сторінки Реєстрація")
+    public void registrationPageDetails() {
+        openUkrainianLogin();
+        assertThat(login.registerLink()).hasText("Зареєструватися");
+        assertThat(login.registerLink()).isVisible();
+        var registration = login.openRegistration();
+        registration.expectLoaded();
+        assertEquals(registration.url(), "https://my.nutrimind.game.nbt.expert/uk/signup");
+        registration.expectDetailedForm();
+    }
+
 }
