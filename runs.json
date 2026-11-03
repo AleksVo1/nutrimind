@@ -1,0 +1,104 @@
+[
+  {
+    "key": "41638388841-1",
+    "number": 6,
+    "attempt": 1,
+    "commit": "9e4beea",
+    "branch": "main",
+    "date": "2026-11-03T12:45:24Z",
+    "actions_url": "https://github.com/AleksVo1/nutrimind/actions/runs/41638388841",
+    "statistic": {
+      "failed": 1,
+      "broken": 0,
+      "skipped": 0,
+      "passed": 7,
+      "unknown": 0,
+      "total": 8
+    }
+  },
+  {
+    "key": "41635687272-1",
+    "number": 5,
+    "attempt": 1,
+    "commit": "fd37d8b",
+    "branch": "main",
+    "date": "2026-11-03T12:26:14Z",
+    "actions_url": "https://github.com/AleksVo1/nutrimind/actions/runs/41635687272",
+    "statistic": {
+      "failed": 1,
+      "broken": 0,
+      "skipped": 0,
+      "passed": 7,
+      "unknown": 0,
+      "total": 8
+    }
+  },
+  {
+    "key": "41628420346-3",
+    "number": 4,
+    "attempt": 3,
+    "commit": "1429807",
+    "branch": "main",
+    "date": "2026-11-03T11:33:01Z",
+    "actions_url": "https://github.com/AleksVo1/nutrimind/actions/runs/41628420346",
+    "statistic": {
+      "failed": 1,
+      "broken": 0,
+      "skipped": 0,
+      "passed": 7,
+      "unknown": 0,
+      "total": 8
+    }
+  },
+  {
+    "key": "41627634024-1",
+    "number": 3,
+    "attempt": 1,
+    "commit": "3cc64e4",
+    "branch": "main",
+    "date": "2026-11-03T11:27:14Z",
+    "actions_url": "https://github.com/AleksVo1/nutrimind/actions/runs/41627634024",
+    "statistic": {
+      "failed": 1,
+      "broken": 0,
+      "skipped": 0,
+      "passed": 7,
+      "unknown": 0,
+      "total": 8
+    }
+  },
+  {
+    "key": "41625748327-1",
+    "number": 2,
+    "attempt": 1,
+    "commit": "87f6a0d",
+    "branch": "main",
+    "date": "2026-11-03T11:13:27Z",
+    "actions_url": "https://github.com/AleksVo1/nutrimind/actions/runs/41625748327",
+    "statistic": {
+      "failed": 1,
+      "broken": 0,
+      "skipped": 0,
+      "passed": 7,
+      "unknown": 0,
+      "total": 8
+    }
+  },
+  {
+    "key": "41624860828-1",
+    "number": 1,
+    "attempt": 1,
+    "commit": "1dbb1fb",
+    "branch": "main",
+    "date": "2026-11-03T11:07:05Z",
+    "actions_url": "https://github.com/AleksVo1/nutrimind/actions/runs/41624860828",
+    "statistic": {
+      "failed": 1,
+      "broken": 0,
+      "skipped": 0,
+      "passed": 7,
+      "unknown": 0,
+      "total": 8
+    }
+  }
+]
