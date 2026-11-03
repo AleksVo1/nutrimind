@@ -141,3 +141,14 @@ GitHub Actions генерує HTML звіт навіть після падінн
 Workflow використовує `ubuntu-24.04`, `actions/checkout@v5`, `actions/setup-java@v5` та `actions/upload-artifact@v6`. У цих версіях actions runtime — Node.js 24. Закріплення Ubuntu 24.04 запобігає автоматичному переходу `ubuntu-latest` на інший образ.
 
 Прогін GitHub Actions [41624860828](https://github.com/AleksVo1/nutrimind/actions/runs/41624860828): 7 passed, 1 failed (`recoveryNavigation`, неправильний перехід на `/ru/login`). Exit code 1 спричинений тестом; попередження про runtime actions не були причиною падіння. Allure звіт і артефакт успішно створені. Оновлення workflow прибирає зазначені попередження, але TC-07 залишиться failed до виправлення сайту.
+
+## Allure у браузері через GitHub Pages
+
+1. У GitHub відкрийте **Settings → Pages → Build and deployment → Source → GitHub Actions**.
+2. Запуште оновлені `.github/workflows/ui-tests.yml`, `.github/scripts/prepare-pages-results.py` і `pom.xml` у `main`.
+3. Відкрийте **Actions → NutriMind UI tests**. Після тестів job `deploy-report` опублікує звіт навіть за наявності невдалих тестів.
+4. Натисніть URL середовища `github-pages` або **Open report** у summary job `deploy-report`. Стандартна адреса цього репозиторію: https://AleksVo1.github.io/nutrimind/ (за відсутності власного домену).
+
+Посилання показує останній опублікований прогін із `main`; PR і сторонні гілки його не перезаписують. Історія прогонів залишається в артефактах Actions. Публічний звіт містить результати та скриншоти; ZIP trace із даними сесії виключається зі спеціальної копії результатів. Повний звіт та trace зберігаються в `ui-test-results`. GitHub Pages може бути загальнодоступним: не використовуйте для цих тестів акаунти з приватними даними.
+
+Workflow залишає job тестів червоним, якщо тест впав, незалежно від успіху публікації. Налаштування Pages та перша віддалена публікація виконуються після push.

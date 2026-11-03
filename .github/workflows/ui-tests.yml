@@ -11,6 +11,8 @@ concurrency:
 jobs:
   ui-tests:
     runs-on: ubuntu-24.04
+    outputs:
+      pages-ready: ${{ steps.pages-artifact.outcome == 'success' }}
     timeout-minutes: 15
     env:
       HEADLESS: 'true'
@@ -42,3 +44,41 @@ jobs:
             target/allure-results/
             target/allure-report/
           retention-days: 7
+
+      - name: Prepare public Allure results
+        if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && hashFiles('target/allure-results/*-result.json') != '' }}
+        id: public-results
+        run: python3 .github/scripts/prepare-pages-results.py
+      - name: Generate public Allure report
+        if: ${{ !cancelled() && steps.public-results.outcome == 'success' }}
+        id: public-report
+        run: mvn -B allure:report -Dallure.results.directory="$GITHUB_WORKSPACE/target/allure-pages-results" -Dallure.report.directory="$GITHUB_WORKSPACE/target/allure-pages-report"
+      - name: Upload Pages report
+        if: ${{ !cancelled() && steps.public-report.outcome == 'success' }}
+        id: pages-artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: target/allure-pages-report
+
+  deploy-report:
+    needs: ui-tests
+    if: ${{ always() && !cancelled() && needs.ui-tests.outputs.pages-ready == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: allure-github-pages
+      cancel-in-progress: false
+    steps:
+      - name: Publish Allure to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+      - name: Link report in run summary
+        env:
+          REPORT_URL: ${{ steps.deployment.outputs.page_url }}
+        run: printf 'Allure report — [Open report](%s)\n' "$REPORT_URL" >> "$GITHUB_STEP_SUMMARY"
