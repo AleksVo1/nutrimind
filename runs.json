@@ -1,5 +1,22 @@
 [
   {
+    "key": "41656726124-1",
+    "number": 8,
+    "attempt": 1,
+    "commit": "9bed553",
+    "branch": "main",
+    "date": "2026-11-03T14:44:51Z",
+    "actions_url": "https://github.com/AleksVo1/nutrimind/actions/runs/41656726124",
+    "statistic": {
+      "failed": 0,
+      "broken": 0,
+      "skipped": 0,
+      "passed": 9,
+      "unknown": 0,
+      "total": 9
+    }
+  },
+  {
     "key": "41655027041-1",
     "number": 7,
     "attempt": 1,
