@@ -29,4 +29,19 @@
       </configuration>
     </plugin>
   </plugins></build>
+  <profiles>
+    <profile><id>allure-archive</id><build><plugins>
+      <plugin><groupId>io.qameta.allure</groupId><artifactId>allure-maven</artifactId>
+        <configuration><executorInfo>
+          <name>GitHub Actions</name><type>github</type>
+          <url>${allure.executor.url}</url>
+          <buildOrder>${allure.build.order}</buildOrder>
+          <buildName>${allure.build.name}</buildName>
+          <buildUrl>${allure.build.url}</buildUrl>
+          <reportUrl>${allure.archive.report.url}</reportUrl>
+          <reportName>${allure.archive.report.name}</reportName>
+        </executorInfo></configuration>
+      </plugin>
+    </plugins></build></profile>
+  </profiles>
 </project>

@@ -1,18 +1,20 @@
 name: NutriMind UI tests
 on:
   push:
+    branches-ignore:
+      - allure-history
   pull_request:
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   group: ui-tests-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   ui-tests:
     runs-on: ubuntu-24.04
     outputs:
-      pages-ready: ${{ steps.pages-artifact.outcome == 'success' }}
+      pages-ready: ${{ steps.public-results-artifact.outcome == 'success' }}
     timeout-minutes: 15
     env:
       HEADLESS: 'true'
@@ -38,6 +40,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: ui-test-results
+          overwrite: true
           path: |
             target/surefire-reports/
             target/artifacts/
@@ -49,23 +52,23 @@ jobs:
         if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && hashFiles('target/allure-results/*-result.json') != '' }}
         id: public-results
         run: python3 .github/scripts/prepare-pages-results.py
-      - name: Generate public Allure report
+      - name: Upload public results for archive
         if: ${{ !cancelled() && steps.public-results.outcome == 'success' }}
-        id: public-report
-        run: mvn -B allure:report -Dallure.results.directory="$GITHUB_WORKSPACE/target/allure-pages-results" -Dallure.report.directory="$GITHUB_WORKSPACE/target/allure-pages-report"
-      - name: Upload Pages report
-        if: ${{ !cancelled() && steps.public-report.outcome == 'success' }}
-        id: pages-artifact
-        uses: actions/upload-pages-artifact@v5
+        id: public-results-artifact
+        uses: actions/upload-artifact@v6
         with:
-          path: target/allure-pages-report
+          name: allure-public-results-${{ github.run_attempt }}
+          path: target/allure-pages-results/
+          retention-days: 7
 
   deploy-report:
     needs: ui-tests
     if: ${{ always() && !cancelled() && needs.ui-tests.outputs.pages-ready == 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 30
     permissions:
+      contents: write
+      actions: read
       pages: write
       id-token: write
     environment:
@@ -75,10 +78,43 @@ jobs:
       group: allure-github-pages
       cancel-in-progress: false
     steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - uses: actions/download-artifact@v7
+        with:
+          name: allure-public-results-${{ github.run_attempt }}
+          path: target/allure-public-results
+      - name: Restore persistent report archive
+        run: bash .github/scripts/restore-allure-archive.sh
+      - name: Build archive and recover available past reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALLURE_PAGES_URL: ${{ vars.ALLURE_PAGES_URL }}
+        run: |
+          export RUN_CREATED_AT="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at)"
+          python3 .github/scripts/allure_archive.py
+      - name: Save complete report archive
+        run: |
+          git -C target/allure-archive config user.name 'github-actions[bot]'
+          git -C target/allure-archive config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C target/allure-archive add .
+          if ! git -C target/allure-archive diff --cached --quiet; then
+            git -C target/allure-archive commit -m "Archive Allure run $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
+            git -C target/allure-archive push origin HEAD:refs/heads/allure-history
+          fi
+      - name: Upload complete Pages archive
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: target/allure-archive
       - name: Publish Allure to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
       - name: Link report in run summary
         env:
           REPORT_URL: ${{ steps.deployment.outputs.page_url }}
-        run: printf 'Allure report — [Open report](%s)\n' "$REPORT_URL" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          printf 'Allure — [All runs](%s) · [Latest report](%slatest/)\n' "$REPORT_URL" "$REPORT_URL" >> "$GITHUB_STEP_SUMMARY"
