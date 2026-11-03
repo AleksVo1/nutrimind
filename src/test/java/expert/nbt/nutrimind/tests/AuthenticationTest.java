@@ -92,10 +92,14 @@ public final class AuthenticationTest extends BaseTest {
         assertThat(login.recoverLink()).isVisible();
         assertThat(login.registerLink()).isVisible();
     }
-    @Test(description = "TC-07: Посилання відкриває форму скидання пароля")
+    @Test(description = "TC-07: Відновлення пароля відкриває авторизацію кабінету (dev)")
+    @io.qameta.allure.Description("Очікувана dev-поведінка: нова вкладка /ru/login із формою авторизації та посиланням скидання пароля; підтверджено користувачем у відео.")
     public void recoveryNavigation() {
         openUkrainianLogin();
+        assertThat(login.recoverLink()).hasText("Відновити пароль");
         login.openRecovery().expectLoaded();
+        // The original game login tab remains available after opening the cabinet.
+        login.expectLoginForm();
     }
     @Test(description = "TC-08: Перехід до форми реєстрації")
     public void registrationNavigation() {
