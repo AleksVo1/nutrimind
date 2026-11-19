@@ -4,6 +4,7 @@
   <groupId>expert.nbt</groupId><artifactId>nutrimind-ui-tests</artifactId><version>1.0-SNAPSHOT</version>
   <properties>
     <maven.compiler.release>17</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <parallel>methods</parallel><threads>2</threads>
     <playwright.version>1.64.0</playwright.version><testng.version>7.11.0</testng.version>
     <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
     <allure.report.directory>${project.build.directory}/allure-report</allure.report.directory>
@@ -19,7 +20,7 @@
   </dependencies>
   <build><plugins>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.14.1</version></plugin>
-    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.5.4</version><configuration><suiteXmlFiles><suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile></suiteXmlFiles></configuration></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.5.4</version><configuration><parallel>${parallel}</parallel><threadCount>${threads}</threadCount><suiteXmlFiles><suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile></suiteXmlFiles></configuration></plugin>
     <plugin><groupId>org.codehaus.mojo</groupId><artifactId>exec-maven-plugin</artifactId><version>3.6.2</version><configuration><classpathScope>test</classpathScope><mainClass>com.microsoft.playwright.CLI</mainClass></configuration></plugin>
     <plugin><groupId>io.qameta.allure</groupId><artifactId>allure-maven</artifactId><version>2.18.0</version>
       <configuration>
@@ -30,7 +31,17 @@
     </plugin>
   </plugins></build>
   <profiles>
-    <profile><id>allure-archive</id><build><plugins>
+    <profile><id>allure-archive</id>
+      <properties>
+        <!-- Archive generation supplies these values through -D options. -->
+        <allure.executor.url/>
+        <allure.build.order>0</allure.build.order>
+        <allure.build.name>Local</allure.build.name>
+        <allure.build.url/>
+        <allure.archive.report.url/>
+        <allure.archive.report.name>NutriMind</allure.archive.report.name>
+      </properties>
+      <build><plugins>
       <plugin><groupId>io.qameta.allure</groupId><artifactId>allure-maven</artifactId>
         <configuration><executorInfo>
           <name>GitHub Actions</name><type>github</type>

@@ -183,6 +183,19 @@ def backfill(archive, current_id, base_url):
             if not list(results.glob("*-result.json")):
                 print(f"Artifact {artifact['id']} has no Allure results; skipped", flush=True)
                 continue
+            metadata = read_json(results / "github-run.json", {})
+            if metadata.get("id") == run["id"] and metadata.get("head_sha") == run["head_sha"]:
+                run = {**run, **metadata}
+            elif run["run_attempt"] > 1:
+                # Legacy artifacts predate metadata: do not mistake a deploy-only retry for new tests.
+                from datetime import datetime
+                artifact_time = datetime.fromisoformat(artifact["created_at"].replace("Z", "+00:00"))
+                while run["run_attempt"] > 1:
+                    attempt = api(f"repos/{repository}/actions/runs/{run['id']}/attempts/{run['run_attempt']}")
+                    started = datetime.fromisoformat(attempt["run_started_at"].replace("Z", "+00:00"))
+                    if artifact_time >= started:
+                        break
+                    run = {**run, "run_attempt": run["run_attempt"] - 1}
             add_run(archive, results, run, base_url)
 
 
@@ -193,7 +206,7 @@ def main():
         f"{os.environ['GITHUB_REPOSITORY'].split('/')[1]}/")
     backfill(archive, int(os.environ["GITHUB_RUN_ID"]), base_url)
     current = {
-        "id": os.environ["GITHUB_RUN_ID"], "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+        "id": os.environ["GITHUB_RUN_ID"], "run_attempt": os.environ.get("TEST_RUN_ATTEMPT", os.environ["GITHUB_RUN_ATTEMPT"]),
         "run_number": os.environ["GITHUB_RUN_NUMBER"], "head_sha": os.environ["GITHUB_SHA"],
         "head_branch": "main", "created_at": os.environ["RUN_CREATED_AT"],
         "html_url": f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",

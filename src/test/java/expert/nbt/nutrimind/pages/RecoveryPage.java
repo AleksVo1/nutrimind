@@ -1,25 +1,27 @@
 package expert.nbt.nutrimind.pages;
 
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.options.AriaRole;
-import com.microsoft.playwright.options.LoadState;
+import com.microsoft.playwright.options.*;
+import expert.nbt.nutrimind.config.TestConfig;
+import java.util.regex.Pattern;
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
-/** Dev recovery starts on the cabinet login page, as confirmed by the user. */
+/** Confirmed dev behavior: recovery starts on the cabinet login page. */
+// Pages are borrowed from BrowserSession; closing the context releases all tabs.
+@SuppressWarnings("resource")
 public final class RecoveryPage extends BasePage {
-    public RecoveryPage(Page page) { super(page); }
-    public void expectLoaded() {
-        assertThat(page).hasURL("https://my.nutrimind.game.nbt.expert/ru/login");
-        page.waitForLoadState(LoadState.LOAD);
-        assertThat(page.getByRole(AriaRole.HEADING,
+    public RecoveryPage(Page page, TestConfig routes) { super(page, routes); }
+    @Override public void expectLoaded() {
+        assertThat(page()).hasURL(Pattern.compile("^https?://[^/?#]+/ru/login(?:\\?.*)?$"));
+        page().waitForLoadState(LoadState.LOAD);
+        assertThat(page().getByRole(AriaRole.HEADING,
                 new Page.GetByRoleOptions().setName("Авторизация").setExact(true))).isVisible();
-        assertThat(page.locator("#login-form #loginform-email")).isVisible();
-        assertThat(page.locator("#login-form #loginform-password")).isVisible();
-        assertThat(page.locator("#login-form #loginform-password")).hasAttribute("type", "password");
+        // The cabinet fields have placeholders, but no associated labels.
+        assertThat(page().getByPlaceholder("E-mail", new Page.GetByPlaceholderOptions().setExact(true))).isVisible();
+        assertThat(page().getByPlaceholder("Пароль", new Page.GetByPlaceholderOptions().setExact(true))).isVisible();
+        assertThat(page().getByPlaceholder("Пароль", new Page.GetByPlaceholderOptions().setExact(true))).hasAttribute("type", "password");
         assertThat(button("Авторизоваться")).isVisible();
-        var resetLink = page.getByRole(AriaRole.LINK,
-                new Page.GetByRoleOptions().setName("сбросить его.").setExact(true));
-        assertThat(resetLink).isVisible();
-        assertThat(resetLink).hasAttribute("href", "/ru/request-password-reset");
+        assertThat(link("сбросить его.")).isVisible();
+        assertThat(link("сбросить его.")).hasAttribute("href", "/ru/request-password-reset");
     }
 }

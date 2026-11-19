@@ -1,122 +1,70 @@
 package expert.nbt.nutrimind.tests;
 
-import com.microsoft.playwright.Response;
-import com.microsoft.playwright.Page;
-import expert.nbt.nutrimind.config.TestConfig;
-import expert.nbt.nutrimind.pages.GameSelectionPage;
-import org.testng.annotations.Test;
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import expert.nbt.nutrimind.config.Credentials;
+import org.testng.annotations.*;
 import static org.testng.Assert.*;
 
 @io.qameta.allure.Epic("NutriMind")
 @io.qameta.allure.Feature("Авторизація та навігація")
 public final class AuthenticationTest extends BaseTest {
-    private static final String ERROR = "Ім'я користувача та пароль не знайдено. Перевірте ще раз!";
-
+    @DataProvider(name = "primaryUser")
+    public Object[][] primaryUser() {
+        return new Object[][]{{config.primary()}};
+    }
     @Test(description = "TC-01: Невірний email і валідний пароль")
     public void invalidEmail() {
         openUkrainianLogin();
-        String original = page.url();
-        login.submitCredentials("invalid@test.com", TestConfig.password());
-        expectRejectedLogin(original);
-        // Assert red emphasis without tying the test to a particular Material theme hex.
-        assertTrue((Boolean) login.errors().first().evaluate("el => { const c = getComputedStyle(el).color.match(/[\\d.]+/g).map(Number); return c[0] > c[1] * 1.5 && c[0] > c[2] * 1.5; }"), "Помилка повинна бути червоною");
+        login().expectRejectedLogin(new Credentials("invalid-email", "invalid@test.com", config.primary().password()), true);
     }
     @Test(description = "TC-02: Валідний логін і невірний пароль")
     public void invalidPassword() {
         openUkrainianLogin();
-        String original = page.url();
-        login.submitCredentials(TestConfig.username(), "1");
-        expectRejectedLogin(original);
+        login().expectRejectedLogin(new Credentials("invalid-password", config.primary().username(), "1"), false);
     }
-    private void expectRejectedLogin(String original) {
-        assertThat(login.errors()).hasCount(2);
-        assertThat(login.errors().first()).hasText(ERROR);
-        assertThat(login.errors().last()).hasText(ERROR);
-        assertThat(login.errors().first()).isVisible();
-        assertThat(login.errors().last()).isVisible();
-        login.expectLoginForm();
-        assertThat(page).hasURL(original);
-    }
-    @Test(description = "TC-03: Успішна авторизація та індикатор завантаження")
-    public void successfulLogin() {
+    @Test(dataProvider = "primaryUser", description = "TC-03: Успішна авторизація та індикатор завантаження")
+    public void successfulLogin(Credentials user) {
         openUkrainianLogin();
-        login.fillCredentials(TestConfig.username(), TestConfig.password());
-        login.submit().click();
-        assertThat(page.getByText("Вхід у систему...", new Page.GetByTextOptions().setExact(true))).isVisible();
-        new GameSelectionPage(page).expectLoaded();
-        assertThat(login.email()).not().isVisible();
+        login().loginExpectingProgress(user);
     }
-    @Test(description = "TC-04: Вихід із підтвердженням і закриття сесії")
-    public void logout() {
+    @Test(dataProvider = "primaryUser", description = "TC-04: Вихід із підтвердженням і закриття сесії")
+    public void logout(Credentials user) {
         openUkrainianLogin();
-        login.login(TestConfig.username(), TestConfig.password()).logout();
-        assertThat(page).hasURL(TestConfig.baseUrl());
-        // Reload a protected route in the same context: old session must not grant access.
-        page.navigate(TestConfig.baseUrl().replaceAll("/+$", "") + "/step-one");
-        login.expectLoginForm();
-        assertThat(page).hasURL(TestConfig.baseUrl());
+        var signedOut = login().login(user).logout();
+        signedOut.expectSignedOut();
+        signedOut.openProtectedRoute();
     }
     @Test(description = "TC-05: Перемикання RU → EN → UK")
     public void languageSwitching() {
         openUkrainianLogin();
-        String[][] translations = {
-            {"RU", "Пароль", "Войти", "Восстановить пароль", "Зарегистрироваться"},
-            {"EN", "Password", "Enter", "Recover password", "Register"},
-            {"UK", "Пароль", "Увійти", "Відновити пароль", "Зареєструватися"}
-        };
-        for (String[] language : translations) {
-            login.selectLanguage(language[0]);
-            assertThat(login.email()).hasAttribute("placeholder", "E-mail");
-            assertThat(login.password()).hasAttribute("placeholder", language[1]);
-            assertThat(login.submit()).hasText(language[2]);
-            assertThat(login.recoverLink()).hasText(language[3]);
-            assertThat(login.registerLink()).hasText(language[4]);
-            login.expectLoginForm();
-            assertThat(login.recoverLink()).isVisible();
-            assertThat(login.registerLink()).isVisible();
-            assertFalse(page.locator("body").innerText().matches("(?s).*(loginForm\\.|homePage\\.|buttons\\.|links\\.).*"), "Видимі ключі перекладу");
+        for (String language : new String[]{"RU", "EN", "UK"}) {
+            login().selectLanguage(language);
+            login().expectTranslations();
         }
     }
     @Test(description = "TC-06: HTTP 200, логотип та форма авторизації")
     public void loginPageLoaded() {
-        Response response = login.open();
-        assertNotNull(response, "Відсутня відповідь навігації");
+        var response = login().open();
+        assertNotNull(response, "Navigation response is missing");
         assertEquals(response.status(), 200);
-        login.selectLanguage("UK");
-        login.expectLoginForm();
-        assertThat(login.logo()).isVisible();
-        assertThat(login.logo()).containsText("Nutri");
-        assertThat(login.logo()).containsText("Mind");
-        assertThat(login.submit()).hasText("Увійти");
-        assertThat(login.recoverLink()).isVisible();
-        assertThat(login.registerLink()).isVisible();
+        login().selectLanguage("UK");
+        login().expectBrandAndLinks();
     }
     @Test(description = "TC-07: Відновлення пароля відкриває авторизацію кабінету (dev)")
-    @io.qameta.allure.Description("Очікувана dev-поведінка: нова вкладка /ru/login із формою авторизації та посиланням скидання пароля; підтверджено користувачем у відео.")
     public void recoveryNavigation() {
         openUkrainianLogin();
-        assertThat(login.recoverLink()).hasText("Відновити пароль");
-        login.openRecovery().expectLoaded();
-        // The original game login tab remains available after opening the cabinet.
-        login.expectLoginForm();
+        login().openRecovery();
+        login().expectLoaded();
     }
     @Test(description = "TC-08: Перехід до форми реєстрації")
     public void registrationNavigation() {
         openUkrainianLogin();
-        assertThat(page.locator("app-link-registration")).containsText("Немає аккаунта?");
-        login.openRegistration().expectLoaded();
+        login().expectRegistrationPrompt();
+        login().openRegistration();
     }
     @Test(description = "TC-09: Відкриття реєстрації — поля, кнопка та навігаційний ланцюжок")
     @io.qameta.allure.Story("Відкриття сторінки Реєстрація")
     public void registrationPageDetails() {
         openUkrainianLogin();
-        assertThat(login.registerLink()).hasText("Зареєструватися");
-        assertThat(login.registerLink()).isVisible();
-        var registration = login.openRegistration();
-        registration.expectLoaded();
-        assertEquals(registration.url(), "https://my.nutrimind.game.nbt.expert/uk/signup");
-        registration.expectDetailedForm();
+        login().openRegistration().expectDetailedForm();
     }
-
 }

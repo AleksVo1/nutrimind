@@ -1,90 +1,71 @@
 package expert.nbt.nutrimind.tests;
 
-import com.microsoft.playwright.*;
-import expert.nbt.nutrimind.config.TestConfig;
+import expert.nbt.nutrimind.config.*;
 import expert.nbt.nutrimind.pages.LoginPage;
-import org.testng.ITestResult;
+import expert.nbt.nutrimind.reporting.*;
+import expert.nbt.nutrimind.support.*;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.lang.reflect.Method;
-import io.qameta.allure.Allure;
-import java.io.ByteArrayInputStream;
+import org.testng.ITestResult;
 import org.testng.annotations.*;
-import java.nio.file.*;
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.setDefaultAssertionTimeout;
 
+@Listeners(SecretSanitizingListener.class)
 public abstract class BaseTest {
     private static final Logger log = LoggerFactory.getLogger(BaseTest.class);
-    private Playwright playwright;
-    private Browser browser;
-    protected BrowserContext context;
-    protected Page page;
-    protected LoginPage login;
+    protected final TestConfig config = TestConfig.load();
+    private final ThreadLocal<TestSession> current = new ThreadLocal<>();
+    private static final ConcurrentHashMap<String, ReentrantLock> accountLocks = new ConcurrentHashMap<>();
+    private final ArtifactCollector artifacts = new ArtifactCollector(new AllureArtifactSink());
 
-    @BeforeClass(alwaysRun = true)
-    public void startBrowser() {
-        log.info("Starting Chromium (headless={})", TestConfig.headless());
-        // Chromium is installed explicitly by the documented setup/CI step.
-        playwright = Playwright.create(new Playwright.CreateOptions()
-                .setEnv(java.util.Map.of("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1")));
-        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(TestConfig.headless()));
-        setDefaultAssertionTimeout(TestConfig.timeout());
+    private static final class TestSession {
+        BrowserSession browser;
+        LoginPage login;
+        ReentrantLock accountLock;
     }
+    protected final LoginPage login() { return current.get().login; }
+
     @BeforeMethod(alwaysRun = true)
-    public void newSession(Method method) {
+    public void newSession(Method method, Object[] parameters) {
+        TestSession session = new TestSession();
+        current.set(session);
+        // Logging out must not invalidate another test using the same account.
+        Arrays.stream(parameters).filter(Credentials.class::isInstance).map(Credentials.class::cast)
+                .findFirst().ifPresent(user -> {
+                    session.accountLock = accountLocks.computeIfAbsent(user.username(), ignored -> new ReentrantLock());
+                    session.accountLock.lock();
+                });
         log.info("START {}.{}", getClass().getSimpleName(), method.getName());
-        context = browser.newContext(new Browser.NewContextOptions().setLocale("uk-UA").setViewportSize(1440, 1000));
-        context.setDefaultTimeout(TestConfig.timeout());
-        context.setDefaultNavigationTimeout(30000);
-        context.tracing().start(new Tracing.StartOptions().setScreenshots(true).setSnapshots(true).setSources(true));
-        page = context.newPage();
-        login = new LoginPage(page);
+        session.browser = new BrowserSession(config);
+        session.browser.start();
+        session.login = new LoginPage(session.browser.newPage(), config, session.browser::protect);
     }
     @AfterMethod(alwaysRun = true)
-    public void finishSession(ITestResult result) throws Exception {
+    public void finishSession(ITestResult result) {
+        TestSession session = current.get();
+        if (session == null) return;
         String name = result.getMethod().getMethodName();
-        long duration = result.getEndMillis() - result.getStartMillis();
-        if (result.getStatus() == ITestResult.SUCCESS) {
-            log.info("PASS {} ({} ms)", name, duration);
-        } else if (result.getStatus() == ITestResult.SKIP) {
-            log.warn("SKIP {} ({} ms)", name, duration);
-        } else {
-            log.error("FAIL {} ({} ms), cause={}", name, duration,
-                    result.getThrowable() == null ? "unknown" : result.getThrowable().getClass().getSimpleName());
-        }
-        if (context == null) return;
+        String alias = Arrays.stream(result.getParameters()).filter(Credentials.class::isInstance)
+                .map(Object::toString).findFirst().orElse("default");
+        String status = result.isSuccess() ? "PASS" : result.getStatus() == ITestResult.SKIP ? "SKIP" : "FAIL";
+        log.info("{} {} [{}] ({} ms)", status, name, alias, result.getEndMillis() - result.getStartMillis());
         try {
-            if (!result.isSuccess()) {
-                Path directory = Paths.get("target", "artifacts", result.getMethod().getMethodName());
-                Files.createDirectories(directory);
-                int index = 0;
-                for (Page current : context.pages()) {
-                    if (!current.isClosed()) {
-                        String attachmentName = "page-" + index++;
-                        byte[] screenshot = current.screenshot(new Page.ScreenshotOptions()
-                                .setPath(directory.resolve(attachmentName + ".png")).setFullPage(true));
-                        Allure.addAttachment(attachmentName, "image/png", new ByteArrayInputStream(screenshot), ".png");
-                        Allure.addAttachment(attachmentName + " URL", "text/plain", current.url());
-                    }
-                }
-                Path trace = directory.resolve("trace.zip");
-                context.tracing().stop(new Tracing.StopOptions().setPath(trace));
-                log.info("Failure evidence saved to {}", directory.toAbsolutePath());
-                try (var stream = Files.newInputStream(trace)) {
-                    Allure.addAttachment("Playwright trace", "application/zip", stream, ".zip");
-                }
-            } else context.tracing().stop();
-        } finally { context.close(); context = null; }
-    }
-    @AfterClass(alwaysRun = true)
-    public void stopBrowser() {
-        log.info("Closing browser and Playwright");
-        if (browser != null) browser.close();
-        if (playwright != null) playwright.close();
+            if (session.browser != null) session.browser.finish(artifacts,
+                    name + "-" + alias + "-" + java.util.UUID.randomUUID(), !result.isSuccess());
+        } finally {
+            try { if (session.browser != null) session.browser.close(); }
+            finally {
+                if (session.accountLock != null) session.accountLock.unlock();
+                current.remove();
+            }
+        }
     }
     protected void openUkrainianLogin() {
-        login.open();
-        login.selectLanguage("UK");
-        login.expectLoginForm();
+        login().open();
+        login().selectLanguage("UK");
+        login().expectLoaded();
     }
 }

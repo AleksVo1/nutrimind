@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("archive", Path(__file__).parents[1] / "allure_archive.py")
@@ -83,6 +84,40 @@ class ArchiveTest(unittest.TestCase):
         with patch.object(archive_module, "api", return_value={"artifacts": records}) as api:
             archive_module.backfill(self.archive, 103, "https://owner.github.io/repo/")
             self.assertEqual(api.call_count, 1)
+
+    def test_backfill_uses_test_attempt_metadata_after_deployment_retry(self):
+        run = self.run_info(1, 2)
+        run.update(status="completed", event="push", path=".github/workflows/ui-tests.yml")
+        artifact = {"id": 9, "expired": False, "created_at": "2026-11-03T12:00:00Z",
+                    "workflow_run": {"id": 101, "head_branch": "main"}}
+        metadata = self.run_info(1, 1)
+        def download(*args, **kwargs):
+            with zipfile.ZipFile(kwargs["stdout"], "w") as zipped:
+                zipped.writestr("allure-results/test-result.json", '{"name":"test"}')
+                zipped.writestr("allure-results/github-run.json", json.dumps(metadata))
+        with patch.object(archive_module, "api", side_effect=[{"artifacts": [artifact]}, run]), \
+             patch.object(archive_module, "command", side_effect=download), \
+             patch.object(archive_module, "generate", side_effect=self.fake_generate):
+            archive_module.backfill(self.archive, 999, "https://owner.github.io/repo/")
+        manifest = json.loads((self.archive / "runs.json").read_text())
+        self.assertEqual(manifest[0]["key"], "101-1")
+        self.assertFalse((self.archive / "runs/101-2").exists())
+
+    def test_legacy_artifact_created_before_retry_keeps_original_attempt(self):
+        run = self.run_info(1, 2)
+        run.update(status="completed", event="push", path=".github/workflows/ui-tests.yml")
+        artifact = {"id": 9, "expired": False, "created_at": "2026-11-03T12:00:00Z",
+                    "workflow_run": {"id": 101, "head_branch": "main"}}
+        def download(*args, **kwargs):
+            with zipfile.ZipFile(kwargs["stdout"], "w") as zipped:
+                zipped.writestr("allure-results/test-result.json", '{"name":"test"}')
+        replies = [{"artifacts": [artifact]}, run, {"run_started_at": "2026-11-03T13:00:00Z"}]
+        with patch.object(archive_module, "api", side_effect=replies), \
+             patch.object(archive_module, "command", side_effect=download), \
+             patch.object(archive_module, "generate", side_effect=self.fake_generate):
+            archive_module.backfill(self.archive, 999, "https://owner.github.io/repo/")
+        manifest = json.loads((self.archive / "runs.json").read_text())
+        self.assertEqual(manifest[0]["key"], "101-1")
 
 
 if __name__ == "__main__":

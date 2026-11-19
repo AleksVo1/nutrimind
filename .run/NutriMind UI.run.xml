@@ -2,7 +2,7 @@
   <configuration default="false" name="NutriMind UI" type="MavenRunConfiguration" factoryName="Maven">
     <MavenSettings><option name="myRunnerParameters"><MavenRunnerParameters>
       <option name="workingDirPath" value="$PROJECT_DIR$"/>
-      <option name="goals"><list><option value="test"/><option value="-Dheadless=false"/></list></option>
+      <option name="goals"><list><option value="test"/><option value="-Dheadless=false"/><option value="-Dthreads=2"/></list></option>
     </MavenRunnerParameters></option></MavenSettings>
     <method v="2"/>
   </configuration>
