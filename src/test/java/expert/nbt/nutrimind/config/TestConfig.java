@@ -17,10 +17,10 @@ public final class TestConfig {
         timeout = Double.parseDouble(value(local, "timeout", "TEST_TIMEOUT", "15000"));
         if (!Double.isFinite(timeout) || timeout <= 0) throw new IllegalArgumentException("TEST_TIMEOUT must be positive");
         var configured = new ArrayList<Credentials>();
-        configured.add(new Credentials("primary", value(local, "username", "TEST_USERNAME", ""),
+        configured.add(new Credentials("primary", value(local, "username", "TEST_EMAIL", ""),
                 value(local, "password", "TEST_PASSWORD", "")));
-        String email2 = value(local, "user2.email", "TEST_USER_2_EMAIL", "");
-        String password2 = value(local, "user2.password", "TEST_USER_2_PASSWORD", "");
+        String email2 = value(local, "user2.email", "TEST_EMAIL2", "");
+        String password2 = value(local, "user2.password", "TEST_PASSWORD2", "");
         if (!email2.isBlank() || !password2.isBlank()) {
             configured.add(new Credentials("secondary", email2, password2));
         }

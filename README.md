@@ -57,7 +57,7 @@ The **NutriMind UI** configuration runs tests with a visible browser window.
 
 ## Credentials and configuration
 
-Provide `TEST_USERNAME` and `TEST_PASSWORD` for the primary account. Add `TEST_USER_2_EMAIL` and `TEST_USER_2_PASSWORD` 
+Provide `TEST_EMAIL` and `TEST_PASSWORD` for the primary account. Add `TEST_EMAIL2` and `TEST_PASSWORD2` 
 together to configure the secondary account for future two-player game tests. Actual values must not be committed.
 
 Local execution also reads `.secrets/users.properties` using those environment-variable names as property keys. 
@@ -113,8 +113,8 @@ through **Actions → NutriMind UI tests → Run workflow**. The runner uses Ubu
 
 Configure credentials under **Settings → Secrets and variables → Actions**:
 
-- `TEST_USERNAME` and `TEST_PASSWORD` — primary account (required).
-- `TEST_USER_2_EMAIL` and `TEST_USER_2_PASSWORD` — secondary account reserved for two-player game tests.
+- `TEST_EMAIL` and `TEST_PASSWORD` — primary account (required).
+- `TEST_EMAIL2` and `TEST_PASSWORD2` — secondary account reserved for two-player game tests.
 
 Use repository variables for optional `BASE_URL` and `ALLURE_PAGES_URL` overrides.
 

@@ -31,10 +31,10 @@ jobs:
       HEADLESS: 'true'
       TEST_THREADS: ${{ inputs.threads || vars.TEST_THREADS || '2' }}
       BASE_URL: ${{ vars.BASE_URL || 'https://play.nutrimind.game.nbt.expert/' }}
-      TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
+      TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-      TEST_USER_2_EMAIL: ${{ secrets.TEST_USER_2_EMAIL }}
-      TEST_USER_2_PASSWORD: ${{ secrets.TEST_USER_2_PASSWORD }}
+      TEST_EMAIL2: ${{ secrets.TEST_EMAIL2 }}
+      TEST_PASSWORD2: ${{ secrets.TEST_PASSWORD2 }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
@@ -45,12 +45,12 @@ jobs:
       - name: Validate credential configuration
         shell: bash
         run: |
-          if [ -z "$TEST_USERNAME" ] || [ -z "$TEST_PASSWORD" ]; then
-            echo '::error::Configure TEST_USERNAME and TEST_PASSWORD in repository Actions Secrets.'
+          if [ -z "$TEST_EMAIL" ] || [ -z "$TEST_PASSWORD" ]; then
+            echo '::error::Configure TEST_EMAIL and TEST_PASSWORD in repository Actions Secrets.'
             exit 1
           fi
-          if { [ -n "$TEST_USER_2_EMAIL" ] && [ -z "$TEST_USER_2_PASSWORD" ]; } || { [ -z "$TEST_USER_2_EMAIL" ] && [ -n "$TEST_USER_2_PASSWORD" ]; }; then
-            echo '::error::Configure both TEST_USER_2_EMAIL and TEST_USER_2_PASSWORD.'
+          if { [ -n "$TEST_EMAIL2" ] && [ -z "$TEST_PASSWORD2" ]; } || { [ -z "$TEST_EMAIL2" ] && [ -n "$TEST_PASSWORD2" ]; }; then
+            echo '::error::Configure both TEST_EMAIL2 and TEST_PASSWORD2.'
             exit 1
           fi
       - name: Install Chromium and system dependencies
